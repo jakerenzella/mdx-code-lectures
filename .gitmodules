@@ -1,2 +1,3 @@
 [submodule "next-mdx-deck"]
+	path = next-mdx-deck
 	url = https://github.com/jakerenzella/next-mdx-deck
