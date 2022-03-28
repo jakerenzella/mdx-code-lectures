@@ -1,11 +1,11 @@
-from flask import Flask, request
+from flask import Flask, request, render_template
 from flask_cors import CORS, cross_origin
 
 from celery import Celery
 import jobs
 import json
 
-app = Flask(__name__)
+app = Flask(__name__,  static_folder='static',  static_url_path='', )
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['CELERY_BROKER_URL'] = 'redis://localhost:6379'

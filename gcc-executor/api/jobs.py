@@ -1,10 +1,10 @@
-import docker
-import os
 from pathlib import Path
-import uuid
 import shutil
+import uuid
+import os
 
 import logging
+import docker
 
 logger = logging.getLogger("gcc-executor")
 
@@ -36,9 +36,12 @@ def cleanup(job_id):
 def get_output(job_id):
     print(f"getting output for {job_id}")
     filename = f"{get_temp_dir(job_id)}/output.txt"
-    with open(filename, "r") as f:
-        output = f.read()
-    print(f"output: {output}")
+    try:
+        with open(filename, "r") as f:
+            output = f.read()
+        print(f"output: {output}")
+    except FileNotFoundError:
+        raise FileNotFoundError("No output file found, could not compile")
     return output
 
 
@@ -52,15 +55,23 @@ def compile(code, image="gcc:latest", language="c"):
                                           'bind': '/code', 'mode': 'rw'}},
                                       working_dir='/code',
                                       detach=True)
-    print(f"Waiting for container")
-    result = container.wait()
+    print("Waiting for container")
+    try:
+        result = container.wait(timeout=60)
+    except Exception:
+        return {'output': None, 'status_code': -1, 'error': 'Compilation timed out'}
 
-    print(f"Getting output")
-    output = get_output(job_id)
+    print("Getting output")
+    try:
+        output = {'output': get_output(
+            job_id), 'status_code': result['StatusCode'], 'error': result['Error']}
+    except FileNotFoundError as exception:
+        output = {'output': None,
+                  'status_code': result['StatusCode'], 'error': str(exception)}
 
-    print(f"Removing container")
+    print("Removing container")
     container.remove()
-    print(f"Cleaning container")
+    print("Cleaning container")
     cleanup(job_id)
 
     print(f"returning {output}")
